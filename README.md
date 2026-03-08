@@ -1,4 +1,4 @@
-# Arc Payout UI 🌌
+# Arc Payout Hub 🌌
 
 A premium Web3 dashboard built for executing batch transactions on the Arc Testnet. Designed with a high-end, dark-mode glassmorphism aesthetic, this application allows users to seamlessly connect their wallets and distribute native USDC to multiple addresses in a single transaction.
 
