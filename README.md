@@ -1,36 +1,34 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Arc Payout UI 🌌
 
-## Getting Started
+A premium Web3 dashboard built for executing batch transactions on the Arc Testnet. Designed with a high-end, dark-mode glassmorphism aesthetic, this application allows users to seamlessly connect their wallets and distribute native USDC to multiple addresses in a single transaction.
 
-First, run the development server:
+## 🚀 Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+* **Sleek Interface:** Custom dark-mode glassmorphism UI with neon emerald and blue accents.
+* **Wallet Integration:** Seamless wallet connections using Wagmi v2, Viem, and the ConnectKit modal.
+* **Batch Processing:** Drop in a `.csv` file or paste raw text (`address, amount`) to instantly parse and validate recipients.
+* **Smart Contract Execution:** Interacts directly with a custom `batchTransfer` smart contract to handle 18-decimal native USDC gas calculations.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🛠 Tech Stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+* **Framework:** Next.js 14 (App Router)
+* **Language:** TypeScript
+* **Web3 Libraries:** Wagmi v2, Viem, ConnectKit, TanStack React Query
+* **Styling:** Vanilla CSS (CSS Variables, Keyframe Animations, Backdrop Filters)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🔗 Network & Contract Details
 
-## Learn More
+* **Network:** Arc Testnet
+* **Chain ID:** `5042002`
+* **RPC URL:** `https://rpc.testnet.arc.network`
+* **Contract Address:** `0x670927A1AB320108d719eE7a3C8F6def396Db87a`
 
-To learn more about Next.js, take a look at the following resources:
+## 💻 Local Development
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+To run this project locally, ensure you have Node.js installed, then follow these steps:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. **Clone the repository:**
+   ```bash
+   git clone [https://github.com/Stella112/arc-payout-ui.git](https://github.com/Stella112/arc-payout-ui.git)
+   npm install
+   npm run dev
