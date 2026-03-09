@@ -5,6 +5,7 @@ import { useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagm
 import { parseEther, isAddress } from 'viem';
 import { PAYOUT_ABI, PAYOUT_CONTRACT_ADDRESS } from '@/lib/contract';
 import { arcTestnet } from '@/lib/wagmi';
+import { AIChat } from './AIChat';
 
 interface ParsedRow {
     address: string;
@@ -51,6 +52,7 @@ function truncateAddress(addr: string) {
 
 export function PayoutCard() {
     const [csvText, setCsvText] = useState('');
+    const [isChatOpen, setIsChatOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { isConnected } = useAccount();
 
@@ -178,32 +180,42 @@ export function PayoutCard() {
 
             {validRows.length === 0 && <div style={{ height: '24px' }} />}
 
-            {/* Execute Button */}
-            <button
-                id="execute-payout-btn"
-                className={`btn-primary${isPending || isConfirming ? ' loading' : ''}`}
-                onClick={handleExecute}
-                disabled={!canExecute}
-            >
-                {isPending ? (
-                    <>
-                        <span className="spinner" />
-                        Awaiting Wallet…
-                    </>
-                ) : isConfirming ? (
-                    <>
-                        <span className="spinner" />
-                        Confirming on Chain…
-                    </>
-                ) : !isConnected ? (
-                    '🔗 Connect Wallet to Continue'
-                ) : (
-                    <>
-                        ⚡ Execute Batch Payout
-                        {validRows.length > 0 && ` (${validRows.length})`}
-                    </>
-                )}
-            </button>
+            {/* Execute Button & AI Button */}
+            <div style={{ display: 'flex', gap: '12px' }}>
+                <button
+                    id="execute-payout-btn"
+                    className={`btn-primary${isPending || isConfirming ? ' loading' : ''}`}
+                    onClick={handleExecute}
+                    disabled={!canExecute}
+                >
+                    {isPending ? (
+                        <>
+                            <span className="spinner" />
+                            Awaiting Wallet…
+                        </>
+                    ) : isConfirming ? (
+                        <>
+                            <span className="spinner" />
+                            Confirming on Chain…
+                        </>
+                    ) : !isConnected ? (
+                        '🔗 Connect Wallet to Continue'
+                    ) : (
+                        <>
+                            ⚡ Execute Batch Payout
+                            {validRows.length > 0 && ` (${validRows.length})`}
+                        </>
+                    )}
+                </button>
+
+                <button
+                    className="btn-secondary"
+                    style={{ whiteSpace: 'nowrap', border: '1px solid rgba(0, 255, 163, 0.3)', color: 'var(--neon-emerald)', animation: 'pulse-glow 3s infinite', padding: '14px 24px' }}
+                    onClick={() => setIsChatOpen(true)}
+                >
+                    ✨ Ask AI Co-Pilot
+                </button>
+            </div>
 
             {/* Transaction Status */}
             {statusType && (
@@ -235,6 +247,12 @@ export function PayoutCard() {
                     </div>
                 </div>
             )}
+
+            <AIChat
+                isOpen={isChatOpen}
+                onClose={() => setIsChatOpen(false)}
+                csvContext={csvText}
+            />
         </div>
     );
 }
