@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi';
 import { parseEther, isAddress } from 'viem';
 import { PAYOUT_ABI, PAYOUT_CONTRACT_ADDRESS } from '@/lib/contract';
-import { arcTestnet } from '@/lib/wagmi';
+import { arcTestnet, mainnetClient } from '@/lib/wagmi';
 import { AIChat } from './AIChat';
 
 interface ParsedRow {
@@ -15,20 +15,35 @@ interface ParsedRow {
     error?: string;
 }
 
-function parseCSV(raw: string): { rows: ParsedRow[]; parseError: string | null } {
+function parseCSV(raw: string, ensMap: Record<string, string | null>): { rows: ParsedRow[]; parseError: string | null; hasPendingEns: boolean } {
     const lines = raw.trim().split('\n').filter((l) => l.trim());
-    if (lines.length === 0) return { rows: [], parseError: null };
+    if (lines.length === 0) return { rows: [], parseError: null, hasPendingEns: false };
+
+    let hasPendingEns = false;
 
     const rows: ParsedRow[] = lines.map((line, idx) => {
         const parts = line.split(',');
         if (parts.length < 2) {
             return { address: line.trim(), amount: '', amountWei: 0n, valid: false, error: `Line ${idx + 1}: missing amount` };
         }
-        const address = parts[0].trim();
+        let address = parts[0].trim();
+        const originalInput = address;
         const amountStr = parts.slice(1).join(',').trim();
 
+        // Check if it's an ENS domain that needs resolution
+        if (address.endsWith('.eth')) {
+            if (ensMap[address] === undefined) {
+                hasPendingEns = true;
+                return { address, amount: amountStr, amountWei: 0n, valid: false, error: `Line ${idx + 1}: resolving ENS...` };
+            } else if (ensMap[address] === null) {
+                return { address, amount: amountStr, amountWei: 0n, valid: false, error: `Line ${idx + 1}: ENS domain not found` };
+            } else {
+                address = ensMap[address] as string; // use the resolved 0x address
+            }
+        }
+
         if (!isAddress(address)) {
-            return { address, amount: amountStr, amountWei: 0n, valid: false, error: `Line ${idx + 1}: invalid address` };
+            return { address: originalInput, amount: amountStr, amountWei: 0n, valid: false, error: `Line ${idx + 1}: invalid address` };
         }
         const parsedFloat = parseFloat(amountStr);
         if (isNaN(parsedFloat) || parsedFloat <= 0) {
@@ -43,7 +58,7 @@ function parseCSV(raw: string): { rows: ParsedRow[]; parseError: string | null }
     });
 
     const firstError = rows.find((r) => !r.valid)?.error ?? null;
-    return { rows, parseError: firstError };
+    return { rows, parseError: firstError, hasPendingEns };
 }
 
 function truncateAddress(addr: string) {
@@ -52,11 +67,14 @@ function truncateAddress(addr: string) {
 
 export function PayoutCard() {
     const [csvText, setCsvText] = useState('');
+    const [ensMap, setEnsMap] = useState<Record<string, string | null>>({});
+    const [recentPayees, setRecentPayees] = useState<string[]>([]);
+    const [usdcPrice, setUsdcPrice] = useState<number>(1.0);
     const [isChatOpen, setIsChatOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { isConnected } = useAccount();
 
-    const { rows, parseError } = useMemo(() => parseCSV(csvText), [csvText]);
+    const { rows, parseError, hasPendingEns } = useMemo(() => parseCSV(csvText, ensMap), [csvText, ensMap]);
     const validRows = rows.filter((r) => r.valid);
     const totalWei = validRows.reduce((acc, r) => acc + r.amountWei, 0n);
     const totalDisplay = validRows.reduce((acc, r) => acc + parseFloat(r.amount), 0);
@@ -64,7 +82,62 @@ export function PayoutCard() {
     const { writeContract, data: txHash, isPending, error: writeError, reset } = useWriteContract();
     const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
-    const canExecute = isConnected && validRows.length > 0 && !parseError && !isPending && !isConfirming;
+    const canExecute = isConnected && validRows.length > 0 && !parseError && !hasPendingEns && !isPending && !isConfirming;
+
+    // Load recent payees from localStorage on mount
+    useEffect(() => {
+        const saved = localStorage.getItem('arcRecentPayees');
+        if (saved) {
+            try { setRecentPayees(JSON.parse(saved)); } catch {}
+        }
+    }, []);
+
+    // Fetch real-time USDC price from CoinGecko
+    useEffect(() => {
+        fetch('https://api.coingecko.com/api/v3/simple/price?ids=usd-coin&vs_currencies=usd')
+            .then(res => res.json())
+            .then(data => {
+                if (data['usd-coin']?.usd) {
+                    setUsdcPrice(data['usd-coin'].usd);
+                }
+            })
+            .catch(() => {
+                // Silently fallback to 1.0 on failure or rate-limit
+                setUsdcPrice(1.0);
+            });
+    }, []);
+
+    // Resolve ENS domains asynchronously
+    useEffect(() => {
+        if (!hasPendingEns) return;
+
+        const lines = csvText.trim().split('\n').filter((l) => l.trim());
+        lines.forEach(async (line) => {
+            const addressPart = line.split(',')[0].trim();
+            if (addressPart.endsWith('.eth') && ensMap[addressPart] === undefined) {
+                try {
+                    const { normalize } = await import('viem/ens');
+                    const resolved = await mainnetClient.getEnsAddress({ name: normalize(addressPart) });
+                    setEnsMap(prev => ({ ...prev, [addressPart]: resolved ?? null }));
+                } catch (err) {
+                    setEnsMap(prev => ({ ...prev, [addressPart]: null }));
+                }
+            }
+        });
+    }, [csvText, hasPendingEns, ensMap]);
+
+    // Save successful payouts to Recent Payees
+    useEffect(() => {
+        if (!isSuccess || validRows.length === 0) return;
+        
+        setRecentPayees(prev => {
+            const newAddrs = validRows.map(r => r.address);
+            // Combine, removing duplicates, keeping newest at the front, max 15
+            const combined = [...new Set([...newAddrs, ...prev])].slice(0, 15);
+            localStorage.setItem('arcRecentPayees', JSON.stringify(combined));
+            return combined;
+        });
+    }, [isSuccess]); // Only run once when success becomes true
 
     function handleExecute() {
         if (!canExecute) return;
@@ -140,9 +213,31 @@ export function PayoutCard() {
                 className="csv-textarea"
                 value={csvText}
                 onChange={(e) => { setCsvText(e.target.value); reset(); }}
-                placeholder={`0x1A2b3C4d5E6f7A8b9C0d1E2f3A4b5C6d7E8f9A0b, 50.5\n0xDeAdBeEf1234567890abcdef1234567890AbCdEf, 12.0\n0xFe3d4a5B6c7D8e9F0a1B2c3D4e5F6a7B8c9D0e1F, 100.25`}
+                placeholder={`0x1A2b3C4d5E6f7A8b9C0d1E2f3A4b5C6d7E8f9A0b, 50.5\nvitalik.eth, 12.0\n0xFe3d4a5B6c7D8e9F0a1B2c3D4e5F6a7B8c9D0e1F, 100.25`}
                 spellCheck={false}
             />
+
+            {recentPayees.length > 0 && (
+                <div className="recent-payees-wrap">
+                    <span className="recent-payees-label">Recent Payees:</span>
+                    <div className="recent-payees-list">
+                        {recentPayees.map(addr => (
+                            <button 
+                                key={addr} 
+                                className="recent-payee-btn fade-in"
+                                onClick={() => {
+                                    const newLine = csvText ? (csvText.endsWith('\n') ? `${addr}, 0.0` : `\n${addr}, 0.0`) : `${addr}, 0.0`;
+                                    setCsvText(prev => prev + newLine);
+                                    reset();
+                                }}
+                                title={`Add ${addr}`}
+                            >
+                                + {truncateAddress(addr)}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {parseError && <div className="parse-error">⚠ {parseError} — fix before executing.</div>}
 
@@ -174,7 +269,12 @@ export function PayoutCard() {
             {validRows.length > 0 && (
                 <div className="total-row">
                     <span className="total-label">Total Value (msg.value)</span>
-                    <span className="total-value">{totalDisplay.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })} USDC</span>
+                    <div style={{ textAlign: 'right' }}>
+                        <div className="total-value">{totalDisplay.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })} USDC</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                            ≈ ${(totalDisplay * usdcPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                        </div>
+                    </div>
                 </div>
             )}
 
