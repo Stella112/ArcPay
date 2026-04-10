@@ -12,11 +12,22 @@ type PayPageProps = {
     };
 };
 
+type PaymentDetails =
+    | {
+        recipient: `0x${string}`;
+        amount: number;
+        amountWei: bigint;
+        memo?: string;
+        createdAt?: string;
+        chainId: number;
+    }
+    | { error: string };
+
 export default function PayPage({ params }: PayPageProps) {
     const { isConnected } = useAccount();
     const decoded = useMemo(() => decodePaymentLink(params.id), [params.id]);
 
-    const paymentDetails = useMemo(() => {
+    const paymentDetails: PaymentDetails = useMemo(() => {
         if (!decoded) return { error: 'Invalid or malformed payment link.' };
         if (!isAddress(decoded.recipient)) return { error: 'Recipient address is invalid.' };
         const numeric = Number(decoded.amount);
@@ -24,7 +35,7 @@ export default function PayPage({ params }: PayPageProps) {
         try {
             const amountWei = parseUnits(numeric.toString(), arcTestnet.nativeCurrency.decimals);
             return {
-                recipient: decoded.recipient,
+                recipient: decoded.recipient as `0x${string}`,
                 amount: numeric,
                 amountWei,
                 memo: decoded.memo,
@@ -36,7 +47,7 @@ export default function PayPage({ params }: PayPageProps) {
         }
     }, [decoded]);
 
-    const chainMismatch = !!decoded?.chainId && decoded.chainId !== arcTestnet.id;
+    const chainMismatch = !('error' in paymentDetails) && paymentDetails.chainId !== arcTestnet.id;
 
     const {
         data: txHash,
@@ -54,7 +65,7 @@ export default function PayPage({ params }: PayPageProps) {
         if (!canPay || 'error' in paymentDetails) return;
         reset();
         sendTransaction({
-            to: paymentDetails.recipient as `0x${string}`,
+            to: paymentDetails.recipient,
             value: paymentDetails.amountWei,
             chainId: arcTestnet.id,
         });

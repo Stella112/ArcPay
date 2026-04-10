@@ -13,6 +13,11 @@ export function PaymentRequestCard() {
     const [memo, setMemo] = useState('');
     const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const parsedAmount = useMemo(() => {
         const numeric = Number(amount);
@@ -36,11 +41,12 @@ export function PaymentRequestCard() {
 
     const encoded = useMemo(() => (payload ? encodePaymentLink(payload) : ''), [payload]);
 
-    const baseUrl = typeof window === 'undefined'
-        ? process.env.NEXT_PUBLIC_BASE_URL ?? ''
-        : window.location.origin;
+    const baseUrl = mounted
+        ? window.location.origin
+        : process.env.NEXT_PUBLIC_BASE_URL ?? '';
 
-    const link = encoded ? `${baseUrl}/pay/${encoded}` : '';
+    const link = encoded && baseUrl ? `${baseUrl}/pay/${encoded}` : '';
+    const baseUrlMissing = encoded && !baseUrl;
 
     useEffect(() => {
         let active = true;
@@ -141,6 +147,11 @@ export function PaymentRequestCard() {
                         </button>
                     </div>
                     <div className="form-helper">Links are encoded locally — no server storage required.</div>
+                    {baseUrlMissing && (
+                        <div className="form-error">
+                            Set NEXT_PUBLIC_BASE_URL to generate absolute links during server rendering.
+                        </div>
+                    )}
                 </div>
 
                 <div className="qr-panel">
