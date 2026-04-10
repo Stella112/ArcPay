@@ -61,6 +61,14 @@ export default function PayPage({ params }: PayPageProps) {
     };
 
     const statusType = isSuccess ? 'success' : sendError ? 'error' : (isPending || isConfirming) ? 'pending' : null;
+    const pendingTitle = isPending ? 'Waiting for wallet signature…' : 'Waiting for confirmation…';
+    const statusTitle = statusType === 'success'
+        ? 'Payment Confirmed!'
+        : statusType === 'error'
+            ? 'Payment Failed'
+            : statusType === 'pending'
+                ? pendingTitle
+                : '';
 
     return (
         <div className="glass-card-elevated payout-card pay-card fade-in-up">
@@ -134,11 +142,7 @@ export default function PayPage({ params }: PayPageProps) {
                         {statusType === 'success' ? '✅' : statusType === 'error' ? '❌' : '🔄'}
                     </span>
                     <div className="tx-status-content">
-                        <div className="tx-status-title">
-                            {statusType === 'success' && 'Payment Confirmed!'}
-                            {statusType === 'error' && 'Payment Failed'}
-                            {statusType === 'pending' && (isPending ? 'Waiting for wallet signature…' : 'Waiting for confirmation…')}
-                        </div>
+                        <div className="tx-status-title">{statusTitle}</div>
                         {txHash && (
                             <a
                                 className="tx-hash-link"

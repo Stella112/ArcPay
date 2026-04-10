@@ -13,7 +13,6 @@ export function PaymentRequestCard() {
     const [memo, setMemo] = useState('');
     const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
-    const [createdAt] = useState(() => new Date().toISOString());
 
     const parsedAmount = useMemo(() => {
         const numeric = Number(amount);
@@ -31,9 +30,9 @@ export function PaymentRequestCard() {
             amount: parsedAmount.toString(),
             memo: memo.trim() || undefined,
             chainId: arcTestnet.id,
-            createdAt,
+            createdAt: new Date().toISOString(),
         };
-    }, [recipient, parsedAmount, memo, createdAt]);
+    }, [recipient, parsedAmount, memo]);
 
     const encoded = useMemo(() => (payload ? encodePaymentLink(payload) : ''), [payload]);
 
