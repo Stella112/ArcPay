@@ -12,7 +12,7 @@ export async function POST(req: Request) {
             ? `\n\nCSV payout data:\n\`\`\`\n${csvContext}\n\`\`\``
             : '';
 
-        const systemPrompt = `You are an expert Web3 transaction assistant inside Arc Payout Hub. Analyze batch payout CSV data, spot errors (duplicates, suspicious amounts), and answer questions concisely. Use markdown.${csvInfo}`;
+        const systemPrompt = `You are an expert Web3 transaction assistant inside Qevor. Analyze batch payout CSV data, spot errors (duplicates, suspicious amounts), and answer questions concisely. Use markdown.${csvInfo}`;
 
         // Convert from OpenAI format to Gemini format
         const contents = messages.map((m: { role: string; content: string }) => ({

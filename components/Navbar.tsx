@@ -4,6 +4,8 @@ import { ConnectKitButton } from 'connectkit';
 import { useTheme } from 'next-themes';
 import { Sun, Moon } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 function ThemeToggle() {
     const { resolvedTheme, setTheme } = useTheme();
@@ -25,13 +27,24 @@ function ThemeToggle() {
 }
 
 export function Navbar() {
+    const pathname = usePathname();
+
     return (
         <nav className="navbar">
-            <a className="nav-logo" href="/">
+            <Link className="nav-logo" href="/">
                 <div className="nav-logo-icon">⚡</div>
-                <span className="nav-logo-text">Arc Payout Hub</span>
+                <span className="nav-logo-text">Qevor</span>
                 <span className="nav-badge">Testnet</span>
-            </a>
+            </Link>
+
+            <div className="nav-links">
+                <Link className="nav-link" href="/" aria-current={pathname === '/' ? 'page' : undefined}>
+                    Dashboard
+                </Link>
+                <Link className="nav-link" href="/request" aria-current={pathname === '/request' ? 'page' : undefined}>
+                    Request
+                </Link>
+            </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <ThemeToggle />
