@@ -149,7 +149,7 @@ export function PaymentRequestCard() {
                     <div className="form-helper">Links are encoded locally — no server storage required.</div>
                     {baseUrlMissing && (
                         <div className="form-error">
-                            Set NEXT_PUBLIC_BASE_URL to generate absolute links during server rendering.
+                            Set NEXT_PUBLIC_BASE_URL in your environment to generate absolute links.
                         </div>
                     )}
                 </div>
