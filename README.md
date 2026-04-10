@@ -31,7 +31,7 @@ To run this project locally, ensure you have Node.js installed, then follow thes
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/Stella112/ArcPay.git
+   git clone https://github.com/Stella112/Qevor.git
    npm install --legacy-peer-deps
    npm run dev
    ```

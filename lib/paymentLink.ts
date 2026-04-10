@@ -50,7 +50,29 @@ export function decodePaymentLink(encoded: string): PaymentLinkPayload | null {
         const raw = decodeBase64Url(encoded);
         const parsed = JSON.parse(raw);
         if (!parsed || typeof parsed !== 'object') return null;
-        return parsed as PaymentLinkPayload;
+
+        const { recipient, amount, chainId, memo, createdAt } = parsed as {
+            recipient?: unknown;
+            amount?: unknown;
+            chainId?: unknown;
+            memo?: unknown;
+            createdAt?: unknown;
+        };
+
+        if (typeof recipient !== 'string' || typeof amount !== 'string' || typeof chainId !== 'number') {
+            return null;
+        }
+
+        if (memo !== undefined && typeof memo !== 'string') return null;
+        if (createdAt !== undefined && typeof createdAt !== 'string') return null;
+
+        return {
+            recipient,
+            amount,
+            chainId,
+            memo,
+            createdAt,
+        };
     } catch {
         return null;
     }

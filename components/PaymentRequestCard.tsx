@@ -37,7 +37,7 @@ export function PaymentRequestCard() {
     const encoded = useMemo(() => (payload ? encodePaymentLink(payload) : ''), [payload]);
 
     const baseUrl = typeof window === 'undefined'
-        ? process.env.NEXT_PUBLIC_BASE_URL ?? ''
+        ? process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'
         : window.location.origin;
 
     const link = encoded ? `${baseUrl}/pay/${encoded}` : '';
