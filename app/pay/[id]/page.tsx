@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { decodePaymentLink } from '@/lib/paymentLink';
 import { arcTestnet } from '@/lib/wagmi';
-import { isAddress, parseEther } from 'viem';
+import { isAddress, parseUnits } from 'viem';
 import { useAccount, useSendTransaction, useWaitForTransactionReceipt } from 'wagmi';
 
 type PayPageProps = {
@@ -22,7 +22,7 @@ export default function PayPage({ params }: PayPageProps) {
         const numeric = Number(decoded.amount);
         if (!Number.isFinite(numeric) || numeric <= 0) return { error: 'Amount is invalid.' };
         try {
-            const amountWei = parseEther(numeric.toString());
+            const amountWei = parseUnits(numeric.toString(), arcTestnet.nativeCurrency.decimals);
             return {
                 recipient: decoded.recipient,
                 amount: numeric,

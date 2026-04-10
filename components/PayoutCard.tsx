@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi';
-import { parseEther, isAddress } from 'viem';
+import { parseUnits, isAddress } from 'viem';
 import { PAYOUT_ABI, PAYOUT_CONTRACT_ADDRESS } from '@/lib/contract';
 import { arcTestnet, mainnetClient } from '@/lib/wagmi';
 import { AIChat } from './AIChat';
@@ -50,7 +50,7 @@ function parseCSV(raw: string, ensMap: Record<string, string | null>): { rows: P
             return { address, amount: amountStr, amountWei: 0n, valid: false, error: `Line ${idx + 1}: invalid amount "${amountStr}"` };
         }
         try {
-            const amountWei = parseEther(parsedFloat.toString());
+            const amountWei = parseUnits(parsedFloat.toString(), arcTestnet.nativeCurrency.decimals);
             return { address, amount: amountStr, amountWei, valid: true };
         } catch {
             return { address, amount: amountStr, amountWei: 0n, valid: false, error: `Line ${idx + 1}: amount parse failed` };

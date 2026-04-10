@@ -5,6 +5,7 @@ import { isAddress } from 'viem';
 import QRCode from 'qrcode';
 import { arcTestnet } from '@/lib/wagmi';
 import { encodePaymentLink } from '@/lib/paymentLink';
+import Image from 'next/image';
 
 export function PaymentRequestCard() {
     const [recipient, setRecipient] = useState('');
@@ -46,7 +47,9 @@ export function PaymentRequestCard() {
         let active = true;
         if (!link) {
             setQrDataUrl(null);
-            return () => undefined;
+            return () => {
+                active = false;
+            };
         }
 
         QRCode.toDataURL(link, {
@@ -143,7 +146,14 @@ export function PaymentRequestCard() {
 
                 <div className="qr-panel">
                     {qrDataUrl ? (
-                        <img src={qrDataUrl} alt="Payment request QR code" />
+                        <Image
+                            className="qr-image"
+                            src={qrDataUrl}
+                            alt="Payment request QR code"
+                            width={220}
+                            height={220}
+                            unoptimized
+                        />
                     ) : (
                         <div className="qr-placeholder">QR preview</div>
                     )}
